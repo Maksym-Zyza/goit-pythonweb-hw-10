@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from src.database.db import get_db
 from sqlalchemy import text
-from src.routers import contacts
+from src.routers import contacts, owners, auth
 
 app = FastAPI()
 
@@ -29,3 +29,5 @@ def get_health(db=Depends(get_db)):
 
 
 app.include_router(contacts.router)
+app.include_router(owners.router)
+app.include_router(auth.router)

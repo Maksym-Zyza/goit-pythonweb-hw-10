@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, Query, status
 from src.database.db import get_db
 from src.repository import contacts as repository
+from src.repository.auth import get_current_user
 from src.schemas import contacts as schemas
 from typing import Optional
 
-router = APIRouter(prefix="/contacts", tags=["contacts"])
+router = APIRouter(
+    prefix="/contacts", tags=["contacts"], dependencies=[Depends(get_current_user)]
+)
 
 
 @router.get("/", name="List of contacts")
