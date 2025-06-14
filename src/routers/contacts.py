@@ -6,7 +6,9 @@ from src.schemas import contacts as schemas
 from typing import Optional
 
 router = APIRouter(
-    prefix="/contacts", tags=["contacts"], dependencies=[Depends(auth_service.get_current_user)]
+    prefix="/contacts",
+    tags=["contacts"],
+    dependencies=[Depends(auth_service.get_current_user)],
 )
 
 
