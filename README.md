@@ -1,11 +1,11 @@
-## Docker Compose:
+### Docker Compose:
 
 ```bash
 docker compose up
 ```
 
-## FastAPI
+### FastAPI:
 
 ```bash
-   fastapi dev
+fastapi dev
 ```

@@ -3,7 +3,7 @@ from src.database.models import Base
 from src.database.db import engine
 from src.database.db import get_db
 from sqlalchemy import text
-from src.routers import contacts, owners, auth
+from src.routers import contacts, auth
 
 app = FastAPI()
 
@@ -11,7 +11,6 @@ app = FastAPI()
 @app.on_event("startup")
 async def create_tables():
     Base.metadata.create_all(engine)
-    print("Tables created")
 
 
 @app.get("/", name="API root")
@@ -36,6 +35,5 @@ def get_health(db=Depends(get_db)):
         )
 
 
-app.include_router(contacts.router)
-app.include_router(owners.router)
-app.include_router(auth.router)
+app.include_router(contacts.router, prefix="/api")
+app.include_router(auth.router, prefix="/api")
