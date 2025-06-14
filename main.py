@@ -1,9 +1,17 @@
 from fastapi import FastAPI, Depends, HTTPException, status
+from src.database.models import Base
+from src.database.db import engine
 from src.database.db import get_db
 from sqlalchemy import text
 from src.routers import contacts, owners, auth
 
 app = FastAPI()
+
+
+@app.on_event("startup")
+async def create_tables():
+    Base.metadata.create_all(engine)
+    print("Tables created")
 
 
 @app.get("/", name="API root")
