@@ -10,7 +10,7 @@ from starlette.responses import JSONResponse
 from src.database.models import Base
 from src.database.db import engine
 from src.database.db import get_db
-from src.routers import contacts, auth
+from src.routers import contacts, auth, users
 
 app = FastAPI()
 
@@ -68,3 +68,4 @@ async def my_endpoint(request: Request):
 
 app.include_router(contacts.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
