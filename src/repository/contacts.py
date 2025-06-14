@@ -1,32 +1,43 @@
 from fastapi import HTTPException, status
-from src.database.models import Contacts
-from datetime import datetime, timedelta
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import extract
+from sqlalchemy.orm import Session
+from datetime import datetime, timedelta
+
+from src.database.models import Contact, User
 
 
-async def search_contacts(first_name, last_name, email, db):
-    query = db.query(Contacts)
+async def search_contacts(first_name, last_name, email, db: Session, user: User):
+    query = db.query(Contact).filter(Contact.user_id == user.id)
 
     if first_name:
-        query = query.filter(Contacts.first_name.ilike(f"%{first_name}%"))
+        query = query.filter(Contact.first_name.ilike(f"%{first_name}%"))
     if last_name:
-        query = query.filter(Contacts.last_name.ilike(f"%{last_name}%"))
+        query = query.filter(Contact.last_name.ilike(f"%{last_name}%"))
     if email:
-        query = query.filter(Contacts.email.ilike(f"%{email}%"))
+        query = query.filter(Contact.email.ilike(f"%{email}%"))
 
     return query.all()
 
 
-async def create_contact(body, db):
-    contact = Contacts(**body.model_dump())
+async def create_contact(body, db: Session, user: User):
+    contact = Contact(**body.model_dump(), user_id=user.id)
     db.add(contact)
-    db.commit()
-    db.refresh(contact)
-    return contact
+    try:
+        db.commit()
+        db.refresh(contact)
+        return contact
+    except IntegrityError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=400, detail="Email or phone number already exists."
+        )
 
 
-async def get_contact_by_id(id: int, db):
-    contact = db.query(Contacts).filter_by(id=id).first()
+async def get_contact_by_id(id: int, db: Session, user: User):
+    contact = (
+        db.query(Contact).filter(Contact.id == id, Contact.user_id == user.id).first()
+    )
     if not contact:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found"
@@ -34,18 +45,10 @@ async def get_contact_by_id(id: int, db):
     return contact
 
 
-async def update_contact(id: int, body, db):
-    contact = db.query(Contacts).filter_by(id=id).first()
-
-    for key, value in body.model_dump().items():
-        setattr(contact, key, value)
-    db.commit()
-    db.refresh(contact)
-    return contact
-
-
-async def update_contact(id: int, body, db):
-    contact = db.query(Contacts).filter_by(id=id).first()
+async def update_contact(id: int, body, db: Session, user: User):
+    contact = (
+        db.query(Contact).filter(Contact.id == id, Contact.user_id == user.id).first()
+    )
     if not contact:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found"
@@ -55,13 +58,21 @@ async def update_contact(id: int, body, db):
     for key, value in updated_data.items():
         setattr(contact, key, value)
 
-    db.commit()
-    db.refresh(contact)
-    return contact
+    try:
+        db.commit()
+        db.refresh(contact)
+        return contact
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400, detail="Email or phone number already exists."
+        )
 
 
-async def delete_contact(id: int, db):
-    contact = db.query(Contacts).filter_by(id=id).first()
+async def delete_contact(id: int, db: Session, user: User):
+    contact = (
+        db.query(Contact).filter(Contact.id == id, Contact.user_id == user.id).first()
+    )
     if not contact:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found"
@@ -72,7 +83,7 @@ async def delete_contact(id: int, db):
     return contact
 
 
-async def get_upcoming_birthdays(db):
+async def get_upcoming_birthdays(db: Session, user: User):
     today = datetime.today().date()
     upcoming = today + timedelta(days=7)
 
@@ -81,23 +92,23 @@ async def get_upcoming_birthdays(db):
     end_day = upcoming.day
     end_month = upcoming.month
 
-    query = db.query(Contacts)
+    query = db.query(Contact).filter(Contact.user_id == user.id)
 
     if start_month == end_month:
         query = query.filter(
-            extract("month", Contacts.birthday) == start_month,
-            extract("day", Contacts.birthday) >= start_day,
-            extract("day", Contacts.birthday) <= end_day,
+            extract("month", Contact.birthday) == start_month,
+            extract("day", Contact.birthday) >= start_day,
+            extract("day", Contact.birthday) <= end_day,
         )
     else:
         query = query.filter(
             (
-                (extract("month", Contacts.birthday) == start_month)
-                & (extract("day", Contacts.birthday) >= start_day)
+                (extract("month", Contact.birthday) == start_month)
+                & (extract("day", Contact.birthday) >= start_day)
             )
             | (
-                (extract("month", Contacts.birthday) == end_month)
-                & (extract("day", Contacts.birthday) <= end_day)
+                (extract("month", Contact.birthday) == end_month)
+                & (extract("day", Contact.birthday) <= end_day)
             )
         )
 

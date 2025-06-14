@@ -1,5 +1,14 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    DateTime,
+    Boolean,
+    ForeignKey,
+    UniqueConstraint,
+)
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 
@@ -14,13 +23,23 @@ class User(Base):
     refresh_token = Column(String(255), nullable=True)
     confirmed = Column(Boolean, default=False)
 
+    contacts = relationship("Contact", back_populates="owner", cascade="all, delete")
 
-class Contacts(Base):
+
+class Contact(Base):
     __tablename__ = "contacts"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     first_name = Column(String(120), nullable=False)
     last_name = Column(String(120), nullable=False)
-    email = Column(String(120), unique=True, nullable=False)
-    phone = Column(String(20), unique=True, nullable=False)
+    email = Column(String(120), nullable=False)
+    phone = Column(String(20), nullable=False)
     birthday = Column(DateTime, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+
+    owner = relationship("User", back_populates="contacts")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "email", name="uix_user_email"),
+        UniqueConstraint("user_id", "phone", name="uix_user_phone"),
+    )
